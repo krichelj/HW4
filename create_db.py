@@ -109,8 +109,8 @@ def main():
                         insert_student(line_info[1].strip(" "), int(line_info[2].strip(" ")))
                     elif line_type == 'R':  # means we're typing in a classroom
                         insert_classroom(int(line_info[1].strip(" ")), line_info[2].strip(" "), 0, 0)
-
             print_tables(cursor)
+            cursor.close()
 
 
 if __name__ == '__main__':
