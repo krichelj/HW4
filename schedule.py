@@ -1,9 +1,5 @@
-import atexit
 import os
 import sqlite3
-
-data_base_existed = os.path.isfile("schedule.db")
-database_connection = sqlite3.connect("schedule.db")  # connect to the database
 
 
 def select_free_classroom(cursor, i):
@@ -106,7 +102,8 @@ def select_done(cursor, i):
                           ON
                               course.class_id = ? 
                           AND 
-                              course.class_id = classroom.id""", [result[3]])  # select a new course for the freed up classroom
+                              course.class_id = classroom.id""", [result[3]])  # select a new course for the freed up
+        # classroom
         result = cursor.fetchone()
         if result:
             cursor.execute("""SELECT
@@ -114,7 +111,8 @@ def select_done(cursor, i):
                               FROM
                                   classrooms as classroom
                               WHERE
-                                  classroom.current_course_id = ?""", [result[2]])  # check if the course is currently active
+                                  classroom.current_course_id = ?""", [result[2]])  # check if the course is
+            # currently active
             result1 = cursor.fetchone()
             if result1 is None:
                 print("(" + str(i) + ") " + result[0] + ": " + result[1] + " is schedule to start")
@@ -163,30 +161,30 @@ def print_tables(cursor):
     print_table(cursor.fetchall())
 
 
-# register a function to be called immediately when the interpreter terminates
-def close_database():
-    database_connection.commit()
-    database_connection.close()
-
-
-atexit.register(close_database)
-
-
 # the main function
 def main():
+    data_base_existed = os.path.isfile("schedule.db")
     if data_base_existed:
-        cursor = database_connection.cursor()
-        courses_num = count_num_of_courses(cursor)
-        i = 0
-        while courses_num > 0:  # run as long as there are courses left to assign
-            select_free_classroom(cursor, i)
-            select_occupied_classrooms(cursor, i)
-            select_done(cursor, i)
-            print_tables(cursor)
-            decrement_time(cursor)
+        database_connection = sqlite3.connect("schedule.db")  # connect to the database
+        with database_connection:
+            cursor = database_connection.cursor()
             courses_num = count_num_of_courses(cursor)
-            i += 1
-        cursor.close()
+            if courses_num == 0:  # print the tables if the courses table is 0
+                print_tables(cursor)
+            else:
+                i = 0
+                while data_base_existed and courses_num > 0:  # run as long as there are courses left to assign
+                    select_free_classroom(cursor, i)  # check for a free classroom
+                    select_occupied_classrooms(cursor, i)  # check for an occupied classroom
+                    select_done(cursor, i)  # check for a completed course
+                    print_tables(cursor)
+                    decrement_time(cursor)
+                    courses_num = count_num_of_courses(cursor)
+                    i += 1
+            cursor.close()  # close the cursor
+            database_connection.commit()  # save the changes made to the database
+    else:
+        print("schedule.db not found")  # print an error in the case the db is bout found as specified
 
 
 if __name__ == '__main__':
